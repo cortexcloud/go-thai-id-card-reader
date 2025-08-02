@@ -104,7 +104,7 @@ func (r *PCSCReader) monitorLoop() {
 								if retry < 2 && readErr != nil &&
 									(readErr.Error() == "applet not found" ||
 										readErr.Error() == "select applet failed: SW=6A82") {
-									card.Disconnect(scard.ResetCard)
+									_ = card.Disconnect(scard.ResetCard)
 									time.Sleep(200 * time.Millisecond)
 									card, err = r.context.Connect(reader, scard.ShareExclusive, scard.ProtocolT0|scard.ProtocolT1)
 									if err != nil {
