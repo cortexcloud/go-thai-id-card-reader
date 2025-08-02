@@ -2,6 +2,10 @@
 
 A Go-based service that monitors Thai National ID smart card readers and broadcasts card data to connected WebSocket clients.
 
+## Caution
+
+Claude code completely writes this application.
+
 ## Features
 
 - Real-time monitoring of PC/SC smart card readers
@@ -73,8 +77,17 @@ ws://localhost:8080/ws
     "firstNameEn": "FIRSTNAME",
     "lastNameEn": "LASTNAME",
     "dateOfBirth": "1990-01-01",
-    "gender": "Male",
-    "address": "123 ถนนสุขุมวิท...",
+    "gender": "male",
+    "address": {
+      "houseNo": "28/70",
+      "moo": "",
+      "soi": "สุขขุมวิท 70 แยก 5-1",
+      "street": "",
+      "subdistrict": "จอมทอง",
+      "district": "จอมทอง",
+      "province": "กรุงเทพมหานคร",
+      "fullAddress": "28/70 ซอยสุขขุมวิท 70 แยก 5-1 แขวงจอมทอง เขตจอมทอง จังหวัดกรุงเทพมหานคร"
+    },
     "issueDate": "2020-01-01",
     "expireDate": "2030-01-01",
     "photoBase64": "..."
@@ -142,6 +155,11 @@ go test ./...
 ```bash
 golangci-lint run
 ```
+
+### Inspired from
+
+* https://github.com/somprasongd/go-thai-smartcard
+* https://github.com/bencomtech/ThaiNationalIDCard.NET
 
 ## License
 

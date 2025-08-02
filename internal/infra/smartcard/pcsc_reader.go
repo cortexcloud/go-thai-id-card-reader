@@ -93,17 +93,17 @@ func (r *PCSCReader) monitorLoop() {
 							// Add retry logic for card reading
 							var cardData *domain.ThaiIdCard
 							var readErr error
-							
+
 							for retry := 0; retry < 3; retry++ {
 								cardData, readErr = r.readCard(card)
 								if readErr == nil {
 									break
 								}
-								
+
 								// If applet not found, try to reconnect
-								if retry < 2 && readErr != nil && 
-									(readErr.Error() == "applet not found" || 
-									 readErr.Error() == "select applet failed: SW=6A82") {
+								if retry < 2 && readErr != nil &&
+									(readErr.Error() == "applet not found" ||
+										readErr.Error() == "select applet failed: SW=6A82") {
 									card.Disconnect(scard.ResetCard)
 									time.Sleep(200 * time.Millisecond)
 									card, err = r.context.Connect(reader, scard.ShareExclusive, scard.ProtocolT0|scard.ProtocolT1)
@@ -111,11 +111,11 @@ func (r *PCSCReader) monitorLoop() {
 										break
 									}
 								}
-								
+
 								// Wait a bit before retry
 								time.Sleep(100 * time.Millisecond)
 							}
-							
+
 							r.cardInsertHandler(cardData, readErr)
 						}
 					}
@@ -139,7 +139,7 @@ func (r *PCSCReader) monitorLoop() {
 func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	// Add small delay before applet selection
 	time.Sleep(50 * time.Millisecond)
-	
+
 	if err := r.selectApplet(card); err != nil {
 		return nil, fmt.Errorf("%s: %w", domain.ErrMsgUnsupportedCard, err)
 	}
@@ -189,9 +189,9 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	if err == nil && len(data) >= 1 {
 		switch data[0] {
 		case '1':
-			thaiCard.Gender = "Male"
+			thaiCard.Gender = "male"
 		case '2':
-			thaiCard.Gender = "Female"
+			thaiCard.Gender = "female"
 		}
 	}
 
@@ -236,7 +236,7 @@ func (r *PCSCReader) selectApplet(card *scard.Card) error {
 	}
 
 	sw1, sw2 := rsp[len(rsp)-2], rsp[len(rsp)-1]
-	
+
 	// Handle GET RESPONSE if needed
 	if sw1 == 0x61 {
 		// sw2 contains the length of data available
@@ -245,24 +245,24 @@ func (r *PCSCReader) selectApplet(card *scard.Card) error {
 		if err != nil {
 			return fmt.Errorf("GET RESPONSE failed: %w", err)
 		}
-		
+
 		if len(rsp) < 2 {
 			return fmt.Errorf("invalid GET RESPONSE")
 		}
-		
+
 		sw1, sw2 = rsp[len(rsp)-2], rsp[len(rsp)-1]
 	}
-	
+
 	// Accept multiple success status codes
 	if (sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x97 && sw2 == 0x10) {
 		return nil
 	}
-	
+
 	// 6A82 means file/application not found - might need to reset card
 	if sw1 == 0x6A && sw2 == 0x82 {
 		return fmt.Errorf("applet not found (SW=%02X%02X) - card may need reset", sw1, sw2)
 	}
-	
+
 	return fmt.Errorf("select applet failed: SW=%02X%02X", sw1, sw2)
 }
 
