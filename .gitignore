@@ -8,6 +8,8 @@
 *.so
 *.dylib
 
+card-service
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -27,6 +29,26 @@ go.work.sum
 # env file
 .env
 
-# Editor/IDE
-# .idea/
-# .vscode/
+# IDEs and editors
+/.idea
+**/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Temporary
+**/tmp
