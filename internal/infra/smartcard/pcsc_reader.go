@@ -39,7 +39,7 @@ func (r *PCSCReader) StartMonitoring() error {
 
 	r.monitoring = true
 	go r.monitorLoop()
-	
+
 	return nil
 }
 
@@ -60,7 +60,7 @@ func (r *PCSCReader) OnCardRemoved(handler func()) {
 
 func (r *PCSCReader) monitorLoop() {
 	lastState := make(map[string]bool)
-	
+
 	for {
 		select {
 		case <-r.stopChan:
@@ -83,11 +83,11 @@ func (r *PCSCReader) monitorLoop() {
 
 			for _, reader := range readers {
 				card, err := r.context.Connect(reader, scard.ShareShared, scard.ProtocolAny)
-				
+
 				if err == nil {
 					if !lastState[reader] {
 						lastState[reader] = true
-						
+
 						if r.cardInsertHandler != nil {
 							cardData, readErr := r.readCard(card)
 							r.cardInsertHandler(cardData, readErr)
@@ -97,14 +97,14 @@ func (r *PCSCReader) monitorLoop() {
 				} else {
 					if lastState[reader] {
 						lastState[reader] = false
-						
+
 						if r.cardRemoveHandler != nil {
 							r.cardRemoveHandler()
 						}
 					}
 				}
 			}
-			
+
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
@@ -179,7 +179,8 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	// Read Address
 	data, err = r.readBinary(card, 0x15, 0x79, 0x64)
 	if err == nil {
-		thaiCard.Address = r.decodeThaiString(data)
+		addressStr := r.decodeThaiString(data)
+		thaiCard.Address = domain.ParseThaiAddress(addressStr)
 	}
 
 	// Read Photo
@@ -192,9 +193,8 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 }
 
 func (r *PCSCReader) selectApplet(card *scard.Card) error {
-	appletID := []byte{0xA0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01}
-	cmd := append([]byte{0x00, 0xA4, 0x04, 0x00, byte(len(appletID))}, appletID...)
-	
+	cmd := []byte{0x00, 0xa4, 0x04, 0x00, 0x08, 0xa0, 0x00, 0x00, 0x00, 0x54, 0x48, 0x00, 0x01}
+
 	rsp, err := card.Transmit(cmd)
 	if err != nil {
 		return err
@@ -205,17 +205,17 @@ func (r *PCSCReader) selectApplet(card *scard.Card) error {
 	}
 
 	sw1, sw2 := rsp[len(rsp)-2], rsp[len(rsp)-1]
-	if sw1 != 0x90 || sw2 != 0x00 {
-		return fmt.Errorf("select applet failed: SW=%02X%02X", sw1, sw2)
+	// Accept both 0x9000 (success) and 0x9710 (Thai ID card specific response)
+	if (sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x61 && sw2 == 0x0A) {
+		return nil
 	}
-
-	return nil
+	return fmt.Errorf("select applet failed: SW=%02X%02X", sw1, sw2)
 }
 
 func (r *PCSCReader) readBinary(card *scard.Card, p1, p2, le byte) ([]byte, error) {
-	// Send READ BINARY command
-	cmd := []byte{0x80, 0xB0, p1, p2, 0x02, 0x00, 0x00, le}
-	
+	// Send READ BINARY command for Thai ID card
+	cmd := []byte{0x80, 0xB0, p1, p2, 0x02, 0x00, le}
+
 	rsp, err := card.Transmit(cmd)
 	if err != nil {
 		return nil, err
@@ -226,7 +226,7 @@ func (r *PCSCReader) readBinary(card *scard.Card, p1, p2, le byte) ([]byte, erro
 	}
 
 	sw1, sw2 := rsp[len(rsp)-2], rsp[len(rsp)-1]
-	
+
 	// Check if we need to GET RESPONSE
 	if sw1 == 0x61 {
 		// sw2 contains the length of data available
@@ -235,14 +235,14 @@ func (r *PCSCReader) readBinary(card *scard.Card, p1, p2, le byte) ([]byte, erro
 		if err != nil {
 			return nil, err
 		}
-		
+
 		if len(rsp) < 2 {
 			return nil, fmt.Errorf("invalid GET RESPONSE")
 		}
-		
+
 		sw1, sw2 = rsp[len(rsp)-2], rsp[len(rsp)-1]
 	}
-	
+
 	if sw1 != 0x90 || sw2 != 0x00 {
 		return nil, fmt.Errorf("read binary failed: SW=%02X%02X", sw1, sw2)
 	}
@@ -252,7 +252,7 @@ func (r *PCSCReader) readBinary(card *scard.Card, p1, p2, le byte) ([]byte, erro
 
 func (r *PCSCReader) readPhoto(card *scard.Card) ([]byte, error) {
 	var photoData []byte
-	
+
 	// Photo is split into 20 parts
 	photoCommands := []struct{ p1, p2 byte }{
 		{0x01, 0x7B}, {0x02, 0x7A}, {0x03, 0x79}, {0x04, 0x78}, {0x05, 0x77},
@@ -260,7 +260,7 @@ func (r *PCSCReader) readPhoto(card *scard.Card) ([]byte, error) {
 		{0x0B, 0x71}, {0x0C, 0x70}, {0x0D, 0x6F}, {0x0E, 0x6E}, {0x0F, 0x6D},
 		{0x10, 0x6C}, {0x11, 0x6B}, {0x12, 0x6A}, {0x13, 0x69}, {0x14, 0x68},
 	}
-	
+
 	for _, cmd := range photoCommands {
 		data, err := r.readBinary(card, cmd.p1, cmd.p2, 0xFF)
 		if err != nil {
@@ -269,7 +269,17 @@ func (r *PCSCReader) readPhoto(card *scard.Card) ([]byte, error) {
 		}
 		photoData = append(photoData, data...)
 	}
-	
+
+	// Find the end of JPEG data (FFD9 marker) and trim padding
+	jpegEnd := bytes.Index(photoData, []byte{0xFF, 0xD9})
+	if jpegEnd != -1 {
+		// Include the FFD9 marker
+		photoData = photoData[:jpegEnd+2]
+	} else {
+		// If no JPEG end marker found, trim trailing spaces (0x20)
+		photoData = bytes.TrimRight(photoData, " ")
+	}
+
 	return photoData, nil
 }
 
@@ -289,15 +299,15 @@ func (r *PCSCReader) formatDate(dateStr string) string {
 	if len(dateStr) < 8 {
 		return ""
 	}
-	
+
 	year := dateStr[0:4]
 	month := dateStr[4:6]
 	day := dateStr[6:8]
-	
+
 	// Convert Buddhist Era to Gregorian
 	var thaiYear int
 	_, _ = fmt.Sscanf(year, "%d", &thaiYear)
 	gregorianYear := thaiYear - 543
-	
+
 	return fmt.Sprintf("%04d-%s-%s", gregorianYear, month, day)
 }
