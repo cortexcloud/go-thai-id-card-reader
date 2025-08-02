@@ -7,6 +7,11 @@ A Go-based service that monitors Thai National ID smart card readers and broadca
 * Claude code completely writes this application.
 * Tested on Windows 11 only.
 
+## TODO
+
+- [ ] Windows service installer
+- [ ] Log to file with auto log rotation
+
 ## Features
 
 - Real-time monitoring of PC/SC smart card readers
