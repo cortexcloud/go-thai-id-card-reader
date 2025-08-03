@@ -160,9 +160,11 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 		names := r.decodeThaiString(data)
 		// Thai names are space-separated
 		parts := bytes.Split([]byte(names), []byte("#"))
-		if len(parts) >= 2 {
-			thaiCard.FirstNameTH = string(bytes.Trim(parts[0], " \x00"))
-			thaiCard.LastNameTH = string(bytes.Trim(parts[1], " \x00"))
+		if len(parts) >= 4 {
+			thaiCard.PrefixNameTH = string(bytes.Trim(parts[0], " \x00"))
+			thaiCard.FirstNameTH = string(bytes.Trim(parts[1], " \x00"))
+			thaiCard.MiddleNameTH = string(bytes.Trim(parts[2], " \x00"))
+			thaiCard.LastNameTH = string(bytes.Trim(parts[3], " \x00"))
 		}
 	}
 
@@ -172,9 +174,11 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 		names := string(bytes.Trim(data, "\x00"))
 		// English names are space-separated
 		parts := bytes.Split([]byte(names), []byte("#"))
-		if len(parts) >= 2 {
-			thaiCard.FirstNameEN = string(bytes.Trim(parts[0], " \x00"))
-			thaiCard.LastNameEN = string(bytes.Trim(parts[1], " \x00"))
+		if len(parts) >= 4 {
+			thaiCard.PrefixNameEN = string(bytes.Trim(parts[0], " \x00"))
+			thaiCard.FirstNameEN = string(bytes.Trim(parts[1], " \x00"))
+			thaiCard.MiddleNameEN = string(bytes.Trim(parts[2], " \x00"))
+			thaiCard.LastNameEN = string(bytes.Trim(parts[3], " \x00"))
 		}
 	}
 

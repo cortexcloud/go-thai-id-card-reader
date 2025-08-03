@@ -14,17 +14,21 @@ type Address struct {
 }
 
 type ThaiIdCard struct {
-	CitizenID   string   `json:"citizenId"`
-	FirstNameTH string   `json:"firstNameTh"`
-	LastNameTH  string   `json:"lastNameTh"`
-	FirstNameEN string   `json:"firstNameEn"`
-	LastNameEN  string   `json:"lastNameEn"`
-	DateOfBirth string   `json:"dateOfBirth"`
-	Gender      string   `json:"gender"`
-	Address     *Address `json:"address"`
-	IssueDate   string   `json:"issueDate"`
-	ExpireDate  string   `json:"expireDate"`
-	PhotoBase64 string   `json:"photoBase64"`
+	CitizenID    string   `json:"citizenId"`
+	PrefixNameTH string   `json:"prefixNameTh"`
+	FirstNameTH  string   `json:"firstNameTh"`
+	MiddleNameTH string   `json:"middleNameTh"`
+	LastNameTH   string   `json:"lastNameTh"`
+	PrefixNameEN string   `json:"prefixNameEN"`
+	FirstNameEN  string   `json:"firstNameEn"`
+	MiddleNameEN string   `json:"middleNameEN"`
+	LastNameEN   string   `json:"lastNameEn"`
+	DateOfBirth  string   `json:"dateOfBirth"`
+	Gender       string   `json:"gender"`
+	Address      *Address `json:"address"`
+	IssueDate    string   `json:"issueDate"`
+	ExpireDate   string   `json:"expireDate"`
+	PhotoBase64  string   `json:"photoBase64"`
 }
 
 type CardReaderService interface {
@@ -46,7 +50,7 @@ func ParseThaiAddress(addressStr string) *Address {
 	}
 
 	addr := &Address{}
-	
+
 	// Extract house number from first part
 	if len(parts) > 0 && parts[0] != "" {
 		addr.HouseNo = strings.TrimSpace(parts[0])
@@ -70,7 +74,7 @@ func ParseThaiAddress(addressStr string) *Address {
 	if endIdx < 1 {
 		endIdx = len(parts)
 	}
-	
+
 	for i := 1; i < endIdx; i++ {
 		part := strings.TrimSpace(parts[i])
 		if part == "" {
