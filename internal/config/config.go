@@ -16,7 +16,11 @@ type ServerConfig struct {
 }
 
 type LogConfig struct {
-	Level string `mapstructure:"level"`
+	Level    string `mapstructure:"level"`
+	File     string `mapstructure:"file"`
+	MaxSize  int    `mapstructure:"max_size"`  // megabytes
+	MaxAge   int    `mapstructure:"max_age"`   // days
+	Compress bool   `mapstructure:"compress"`
 }
 
 func Load() (*Config, error) {
@@ -31,6 +35,10 @@ func Load() (*Config, error) {
 
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("log.level", "info")
+	viper.SetDefault("log.file", "logs/app.log")
+	viper.SetDefault("log.max_size", 250)
+	viper.SetDefault("log.max_age", 30)
+	viper.SetDefault("log.compress", true)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {

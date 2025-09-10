@@ -3,3 +3,7 @@ server:
 
 log:
   level: "info"
+  file: "logs/app.log"
+  max_size: 250  # MB
+  max_age: 7    # days
+  compress: true

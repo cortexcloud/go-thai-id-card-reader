@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cortex-x/go-thai-id-card-reader/internal/domain"
+	"github.com/cortex-x/go-thai-id-card-reader/internal/infra/logger"
 	"github.com/ebfe/scard"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -158,6 +159,8 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	data, err = r.readBinary(card, 0x00, 0x11, 0x64)
 	if err == nil {
 		names := r.decodeThaiString(data)
+		// Log raw Thai names data
+		logger.LogData(fmt.Sprintf("Raw Thai Names: %s", names))
 		// Thai names are space-separated
 		parts := bytes.Split([]byte(names), []byte("#"))
 		if len(parts) >= 4 {
@@ -172,6 +175,8 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	data, err = r.readBinary(card, 0x00, 0x75, 0x64)
 	if err == nil {
 		names := string(bytes.Trim(data, "\x00"))
+		// Log raw English names data
+		logger.LogData(fmt.Sprintf("Raw English Names: %s", names))
 		// English names are space-separated
 		parts := bytes.Split([]byte(names), []byte("#"))
 		if len(parts) >= 4 {
@@ -215,6 +220,8 @@ func (r *PCSCReader) readCard(card *scard.Card) (*domain.ThaiIdCard, error) {
 	data, err = r.readBinary(card, 0x15, 0x79, 0x64)
 	if err == nil {
 		addressStr := r.decodeThaiString(data)
+		// Log raw address data
+		logger.LogData(fmt.Sprintf("Raw Address: %s", addressStr))
 		thaiCard.Address = domain.ParseThaiAddress(addressStr)
 	}
 
