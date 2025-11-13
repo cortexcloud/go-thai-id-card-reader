@@ -63,14 +63,27 @@ func (h *Hub) Run() {
 			h.mu.RUnlock()
 
 			for _, client := range clients {
-				select {
-				case client.send <- message:
-				default:
-					// Client's send channel is full, close it
-					h.unregisterClient(client)
+				if !client.safeSend(message) {
+					go h.unregisterClient(client)
 				}
 			}
 		}
+	}
+}
+
+func (c *Client) safeSend(message []byte) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.closed {
+		return false
+	}
+
+	select {
+	case c.send <- message:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -121,7 +134,7 @@ func (c *Client) WritePump() {
 			return
 		}
 	}
-	
+
 	// The channel was closed, send close message
 	_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 }
@@ -135,7 +148,7 @@ func (c *Client) ReadPump() {
 	// We don't expect any messages from the client for this application
 	// But we need to read to handle pings and connection close
 	c.conn.SetReadLimit(512)
-	
+
 	for {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
