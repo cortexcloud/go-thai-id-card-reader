@@ -87,36 +87,39 @@ func (r *PCSCReader) monitorLoop() {
 
 				if err == nil {
 					if !lastState[reader] {
-						lastState[reader] = true
+						// Add retry logic for card reading. A failed read must not mark the
+						// card as inserted; otherwise the monitor skips every later retry
+						// until the user physically removes and reinserts the card.
+						var cardData *domain.ThaiIdCard
+						var readErr error
 
-						if r.cardInsertHandler != nil {
-							// Add retry logic for card reading
-							var cardData *domain.ThaiIdCard
-							var readErr error
-
-							for retry := 0; retry < 3; retry++ {
-								cardData, readErr = r.readCard(card)
-								if readErr == nil {
-									break
-								}
-
-								// If applet not found, try to reconnect
-								if retry < 2 && readErr != nil &&
-									(readErr.Error() == "applet not found" ||
-										readErr.Error() == "select applet failed: SW=6A82") {
-									_ = card.Disconnect(scard.ResetCard)
-									time.Sleep(200 * time.Millisecond)
-									card, err = r.context.Connect(reader, scard.ShareExclusive, scard.ProtocolT0|scard.ProtocolT1)
-									if err != nil {
-										break
-									}
-								}
-
-								// Wait a bit before retry
-								time.Sleep(100 * time.Millisecond)
+						for retry := 0; retry < 3; retry++ {
+							cardData, readErr = r.readCard(card)
+							if readErr == nil {
+								break
 							}
 
+							// If applet not found, try to reconnect
+							if retry < 2 &&
+								(readErr.Error() == "applet not found" ||
+									readErr.Error() == "select applet failed: SW=6A82") {
+								_ = card.Disconnect(scard.ResetCard)
+								time.Sleep(200 * time.Millisecond)
+								card, err = r.context.Connect(reader, scard.ShareExclusive, scard.ProtocolT0|scard.ProtocolT1)
+								if err != nil {
+									break
+								}
+							}
+
+							// Wait a bit before retry
+							time.Sleep(100 * time.Millisecond)
+						}
+
+						if r.cardInsertHandler != nil {
 							r.cardInsertHandler(cardData, readErr)
+						}
+						if readErr == nil {
+							lastState[reader] = true
 						}
 					}
 					_ = card.Disconnect(scard.LeaveCard)
